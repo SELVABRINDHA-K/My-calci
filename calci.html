@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nova Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* =========================================================
+   1. DESIGN TOKENS
+   ========================================================= */
+:root{
+  /* dark theme (default) */
+  --bg-1:#060a14;
+  --bg-2:#0d1428;
+  --bg-3:#0a1120;
+  --accent-1:#2f7bff;
+  --accent-2:#00e5ff;
+  --accent-grad:linear-gradient(135deg,var(--accent-1),var(--accent-2));
+  --glass-bg:rgba(255,255,255,0.045);
+  --glass-bg-strong:rgba(255,255,255,0.08);
+  --glass-border:rgba(255,255,255,0.10);
+  --glass-blur:22px;
+  --text-1:#f2f6ff;
+  --text-2:#8ea0c2;
+  --text-3:#5c6c8a;
+  --danger:#ff5d7a;
+  --danger-bg:rgba(255,93,122,0.12);
+  --success:#3ddc97;
+  --shadow-soft:0 25px 70px -25px rgba(0,0,0,0.65);
+  --shadow-btn:0 8px 20px -10px rgba(0,0,0,0.5);
+  --radius-lg:28px;
+  --radius-md:18px;
+  --radius-sm:12px;
+  --font-display:'Outfit',sans-serif;
+  --font-body:'Inter',sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+  --transition-fast:0.15s cubic-bezier(.4,0,.2,1);
+  --transition-med:0.35s cubic-bezier(.4,0,.2,1);
+}
+body.light-theme{
+  --bg-1:#eef2fb;
+  --bg-2:#e4eaf8;
+  --bg-3:#f8faff;
+  --glass-bg:rgba(255,255,255,0.55);
+  --glass-bg-strong:rgba(255,255,255,0.8);
+  --glass-border:rgba(20,30,60,0.08);
+  --text-1:#101828;
+  --text-2:#48546b;
+  --text-3:#7c879e;
+  --shadow-soft:0 25px 70px -30px rgba(30,50,100,0.28);
+  --shadow-btn:0 8px 18px -12px rgba(30,50,100,0.25);
+}
+
+/* =========================================================
+   2. RESET & BASE
+   ========================================================= */
+*,*::before,*::after{box-sizing:border-box;}
+html,body{height:100%;}
+html{overflow-x:hidden;width:100%;}
+body{
+  margin:0;
+  font-family:var(--font-body);
+  color:var(--text-1);
+  background:
+    radial-gradient(circle at 15% 20%, rgba(47,123,255,0.16), transparent 45%),
+    radial-gradient(circle at 85% 75%, rgba(0,229,255,0.12), transparent 45%),
+    linear-gradient(160deg,var(--bg-1),var(--bg-2) 55%,var(--bg-3));
+  min-height:100%;
+  overflow-x:hidden;
+  transition:background var(--transition-med),color var(--transition-med);
+  -webkit-font-smoothing:antialiased;
+}
+img,svg{display:block;}
+button{font-family:inherit;border:none;background:none;color:inherit;cursor:pointer;}
+ul{list-style:none;margin:0;padding:0;}
+a{color:inherit;}
+::selection{background:var(--accent-1);color:#fff;}
+
+/* ambient drifting glow orbs (signature ambient motion) */
+.orb{position:fixed;border-radius:50%;filter:blur(90px);pointer-events:none;z-index:0;opacity:0.55;}
+.orb-a{width:420px;height:420px;background:var(--accent-1);top:-120px;left:-120px;animation:drift1 22s ease-in-out infinite;}
+.orb-b{width:380px;height:380px;background:var(--accent-2);bottom:-140px;right:-100px;animation:drift2 26s ease-in-out infinite;}
+@keyframes drift1{0%,100%{transform:translate(0,0);}50%{transform:translate(60px,80px);}}
+@keyframes drift2{0%,100%{transform:translate(0,0);}50%{transform:translate(-50px,-60px);}}
+@media (prefers-reduced-motion:reduce){
+  .orb{animation:none;}
+  *{animation-duration:0.001ms !important;transition-duration:0.001ms !important;}
+}
+
+/* focus visibility for a11y */
+button:focus-visible,a:focus-visible{
+  outline:2px solid var(--accent-2);
+  outline-offset:2px;
+}
+
+/* =========================================================
+   3. GLASSMORPHISM UTILITY
+   ========================================================= */
+.glass{
+  background:var(--glass-bg);
+  backdrop-filter:blur(var(--glass-blur));
+  -webkit-backdrop-filter:blur(var(--glass-blur));
+  border:1px solid var(--glass-border);
+}
+
+/* =========================================================
+   4. NAVBAR
+   ========================================================= */
+.navbar{
+  position:sticky;top:0;z-index:50;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;row-gap:10px;
+  padding:14px 20px;
+  border-bottom:1px solid var(--glass-border);
+  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  background:rgba(10,15,28,0.35);
+}
+@media (max-width:420px){
+  .navbar{justify-content:center;}
+  .logo{flex:1 0 100%;justify-content:center;}
+  .nav-controls{flex:1 0 100%;justify-content:center;}
+}
+body.light-theme .navbar{background:rgba(255,255,255,0.45);}
+.logo{
+  display:flex;align-items:center;gap:10px;
+  font-family:var(--font-display);font-weight:700;font-size:1.15rem;letter-spacing:0.01em;
+}
+.logo-mark{
+  width:32px;height:32px;border-radius:10px;
+  background:var(--accent-grad);
+  display:flex;align-items:center;justify-content:center;
+  color:#04101f;font-weight:800;font-family:var(--font-mono);font-size:0.95rem;
+  box-shadow:0 0 18px rgba(47,123,255,0.55);
+}
+.nav-controls{display:flex;align-items:center;gap:10px;}
+.mode-switch{
+  display:flex;background:var(--glass-bg-strong);border:1px solid var(--glass-border);
+  border-radius:999px;padding:3px;position:relative;
+}
+.mode-switch button{
+  position:relative;z-index:1;padding:7px 14px;font-size:0.78rem;font-weight:600;
+  border-radius:999px;color:var(--text-2);transition:color var(--transition-fast);
+  letter-spacing:0.02em;
+}
+.mode-switch button.active{color:#04101f;}
+.mode-switch .pill{
+  position:absolute;top:3px;bottom:3px;left:3px;
+  width:calc(50% - 3px);border-radius:999px;background:var(--accent-grad);
+  transition:transform var(--transition-med);
+  box-shadow:0 0 14px rgba(47,123,255,0.5);
+}
+.mode-switch[data-mode="scientific"] .pill{transform:translateX(100%);}
+
+.icon-btn{
+  width:38px;height:38px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--glass-bg-strong);border:1px solid var(--glass-border);
+  transition:box-shadow var(--transition-fast),transform var(--transition-fast),background var(--transition-fast);
+}
+.icon-btn:hover{box-shadow:0 0 16px rgba(47,123,255,0.45);transform:translateY(-1px);}
+.icon-btn:active{transform:scale(0.92);}
+.icon-btn svg{width:18px;height:18px;stroke:var(--text-1);}
+.icon-btn.sound-on svg{stroke:var(--accent-2);}
+
+/* =========================================================
+   5. LAYOUT
+   ========================================================= */
+.app-main{
+  position:relative;z-index:1;
+  max-width:960px;margin:0 auto;
+  padding:36px 20px 60px;
+  display:grid;
+  grid-template-columns:1fr;
+  gap:24px;
+  justify-items:center;
+}
+@media (min-width:900px){
+  .app-main{
+    grid-template-columns:minmax(340px,420px) 300px;
+    align-items:start;
+    justify-items:stretch;
+  }
+}
+
+/* =========================================================
+   6. CALCULATOR CARD
+   ========================================================= */
+.calc-card{
+  width:100%;max-width:420px;
+  border-radius:var(--radius-lg);
+  padding:22px;
+  box-shadow:var(--shadow-soft);
+  animation:cardIn 0.6s cubic-bezier(.2,.8,.2,1) both;
+}
+@keyframes cardIn{
+  from{opacity:0;transform:translateY(18px) scale(0.97);}
+  to{opacity:1;transform:translateY(0) scale(1);}
+}
+
+/* ---- display ---- */
+.display{
+  border-radius:var(--radius-md);
+  padding:20px 18px 16px;
+  margin-bottom:16px;
+  background:linear-gradient(160deg,rgba(255,255,255,0.05),rgba(255,255,255,0.01));
+  border:1px solid var(--glass-border);
+  min-height:118px;
+  display:flex;flex-direction:column;justify-content:flex-end;gap:6px;
+  position:relative;overflow:hidden;
+}
+.mem-indicator{
+  position:absolute;top:10px;left:14px;
+  font-family:var(--font-mono);font-size:0.68rem;font-weight:600;
+  color:var(--accent-2);letter-spacing:0.08em;
+  opacity:0;transition:opacity var(--transition-fast);
+}
+.mem-indicator.show{opacity:1;}
+.angle-indicator{
+  position:absolute;top:10px;right:14px;
+  font-family:var(--font-mono);font-size:0.68rem;font-weight:600;
+  color:var(--text-3);letter-spacing:0.08em;
+}
+.expr-line{
+  font-family:var(--font-mono);
+  font-size:1rem;color:var(--text-2);
+  white-space:nowrap;overflow-x:auto;
+  scrollbar-width:none;text-align:right;min-height:22px;
+}
+.expr-line::-webkit-scrollbar{display:none;}
+.result-line{
+  font-family:var(--font-mono);font-weight:700;
+  font-size:clamp(2rem,9vw,2.7rem);
+  text-align:right;white-space:nowrap;overflow-x:auto;scrollbar-width:none;
+  color:var(--text-1);
+  transition:color var(--transition-fast);
+}
+.result-line::-webkit-scrollbar{display:none;}
+.result-line.flash{animation:flashResult 0.5s ease;}
+@keyframes flashResult{
+  0%{transform:scale(1);}
+  30%{transform:scale(1.04);color:var(--accent-2);}
+  100%{transform:scale(1);}
+}
+.result-line.error{color:var(--danger);font-size:1.6rem;}
+
+.display-actions{
+  display:flex;justify-content:flex-end;gap:8px;margin-top:6px;
+}
+.copy-btn{
+  display:flex;align-items:center;gap:6px;
+  font-size:0.72rem;font-weight:600;color:var(--text-2);
+  padding:5px 10px;border-radius:999px;
+  background:var(--glass-bg-strong);border:1px solid var(--glass-border);
+  transition:color var(--transition-fast),box-shadow var(--transition-fast);
+}
+.copy-btn:hover{color:var(--accent-2);box-shadow:0 0 12px rgba(0,229,255,0.35);}
+.copy-btn svg{width:12px;height:12px;stroke:currentColor;}
+.copy-btn.copied{color:var(--success);}
+
+/* ---- memory row ---- */
+.mem-row{
+  display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px;
+}
+.mem-row button{
+  font-family:var(--font-mono);font-size:0.72rem;font-weight:600;
+  padding:9px 0;border-radius:var(--radius-sm);
+  background:var(--glass-bg-strong);border:1px solid var(--glass-border);
+  color:var(--text-2);
+  transition:all var(--transition-fast);
+}
+.mem-row button:hover{color:var(--text-1);box-shadow:0 0 10px rgba(47,123,255,0.3);}
+.mem-row button:active{transform:scale(0.93);}
+
+/* ---- scientific row(s) ---- */
+.sci-grid{
+  display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:8px;
+  max-height:0;opacity:0;overflow:hidden;
+  transition:max-height var(--transition-med),opacity var(--transition-med),margin var(--transition-med);
+}
+.sci-grid.open{max-height:220px;opacity:1;}
+
+/* ---- main grid ---- */
+.btn-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:10px;
+}
+.btn{
+  position:relative;overflow:hidden;
+  padding:18px 0;border-radius:var(--radius-md);
+  font-family:var(--font-body);font-weight:600;font-size:1.05rem;
+  color:var(--text-1);
+  background:var(--glass-bg-strong);
+  border:1px solid var(--glass-border);
+  box-shadow:var(--shadow-btn);
+  transition:transform var(--transition-fast),box-shadow var(--transition-fast),background var(--transition-fast);
+}
+.btn:hover{box-shadow:0 0 20px rgba(47,123,255,0.35);transform:translateY(-1px);}
+.btn:active{transform:scale(0.94);}
+.btn.op{color:var(--accent-2);font-weight:700;}
+.btn.fn{font-size:0.85rem;color:var(--text-2);}
+.btn.equals{
+  background:var(--accent-grad);color:#04101f;font-weight:800;
+  box-shadow:0 10px 26px -8px rgba(47,123,255,0.65);
+}
+.btn.equals:hover{box-shadow:0 10px 30px -6px rgba(0,229,255,0.75);}
+.btn.clear{color:var(--danger);}
+.btn.span-2{grid-column:span 2;}
+
+/* ripple */
+.ripple{
+  position:absolute;border-radius:50%;
+  background:rgba(255,255,255,0.5);
+  transform:scale(0);
+  animation:rippleAnim 0.55s ease-out forwards;
+  pointer-events:none;
+}
+@keyframes rippleAnim{
+  to{transform:scale(3.2);opacity:0;}
+}
+
+/* =========================================================
+   7. HISTORY SIDEBAR
+   ========================================================= */
+.history-panel{
+  width:100%;max-width:420px;
+  border-radius:var(--radius-lg);
+  padding:20px;
+  box-shadow:var(--shadow-soft);
+  display:flex;flex-direction:column;
+  max-height:600px;
+}
+@media (min-width:900px){.history-panel{max-width:none;}}
+.history-head{
+  display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;
+}
+.history-head h2{
+  font-family:var(--font-display);font-size:1rem;margin:0;font-weight:600;
+  display:flex;align-items:center;gap:8px;
+}
+.history-head h2::before{
+  content:'';width:8px;height:8px;border-radius:50%;background:var(--accent-grad);
+  box-shadow:0 0 8px var(--accent-2);
+}
+.clear-history{
+  font-size:0.72rem;font-weight:600;color:var(--text-3);
+  padding:5px 10px;border-radius:999px;border:1px solid var(--glass-border);
+  transition:color var(--transition-fast),border-color var(--transition-fast);
+}
+.clear-history:hover{color:var(--danger);border-color:var(--danger);}
+.history-list{
+  overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-right:4px;
+  scrollbar-width:thin;
+}
+.history-list::-webkit-scrollbar{width:5px;}
+.history-list::-webkit-scrollbar-thumb{background:var(--glass-border);border-radius:10px;}
+.history-item{
+  padding:10px 12px;border-radius:var(--radius-sm);
+  background:var(--glass-bg-strong);border:1px solid var(--glass-border);
+  cursor:pointer;text-align:right;
+  animation:fadeInItem 0.35s ease both;
+  transition:box-shadow var(--transition-fast),transform var(--transition-fast);
+}
+.history-item:hover{box-shadow:0 0 14px rgba(47,123,255,0.3);transform:translateX(-2px);}
+@keyframes fadeInItem{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+.history-item .h-expr{
+  font-family:var(--font-mono);font-size:0.78rem;color:var(--text-2);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.history-item .h-result{
+  font-family:var(--font-mono);font-size:1.05rem;font-weight:700;color:var(--text-1);
+}
+.history-empty{
+  color:var(--text-3);font-size:0.85rem;text-align:center;padding:30px 10px;
+}
+
+/* mobile history drawer */
+@media (max-width:899px){
+  .history-panel{
+    position:fixed;top:0;right:0;height:100vh;max-height:none;
+    width:min(340px,86vw);
+    border-radius:0;z-index:60;
+    transform:translateX(100%);
+    transition:transform var(--transition-med);
+  }
+  .history-panel.open{transform:translateX(0);}
+  .history-overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,0.45);
+    z-index:55;opacity:0;pointer-events:none;transition:opacity var(--transition-med);
+  }
+  .history-overlay.open{opacity:1;pointer-events:auto;}
+}
+
+/* =========================================================
+   8. FOOTER
+   ========================================================= */
+footer{
+  position:relative;z-index:1;
+  text-align:center;padding:24px 20px 40px;
+  color:var(--text-3);font-size:0.8rem;
+}
+footer kbd{
+  font-family:var(--font-mono);background:var(--glass-bg-strong);
+  border:1px solid var(--glass-border);border-radius:5px;padding:1px 6px;font-size:0.75rem;
+}
+
+/* toast */
+.toast{
+  position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--glass-bg-strong);border:1px solid var(--glass-border);
+  backdrop-filter:blur(16px);color:var(--text-1);
+  padding:10px 18px;border-radius:999px;font-size:0.85rem;font-weight:500;
+  box-shadow:var(--shadow-soft);
+  opacity:0;pointer-events:none;z-index:100;
+  transition:opacity var(--transition-fast),transform var(--transition-fast);
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<div class="orb orb-a"></div>
+<div class="orb orb-b"></div>
+
+<!-- ============ NAVBAR ============ -->
+<header class="navbar">
+  <div class="logo">
+    <span class="logo-mark">N</span>
+    Nova Calculator
+  </div>
+  <div class="nav-controls">
+    <div class="mode-switch" id="modeSwitch" data-mode="standard">
+      <span class="pill"></span>
+      <button type="button" class="active" data-mode-btn="standard">Standard</button>
+      <button type="button" data-mode-btn="scientific">Scientific</button>
+    </div>
+    <button type="button" class="icon-btn" id="soundToggle" title="Toggle sound" aria-label="Toggle sound effects">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="M19 5a11 11 0 0 1 0 14M15.5 8.5a6 6 0 0 1 0 7"/></svg>
+    </button>
+    <button type="button" class="icon-btn" id="themeToggle" title="Toggle theme" aria-label="Toggle dark/light theme">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.4 5.4 0 0 1-7.54-7.54A9 9 0 0 0 12 3Z"/></svg>
+    </button>
+    <button type="button" class="icon-btn" id="historyToggle" title="Toggle history" aria-label="Toggle history panel">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v6h6"/><path d="M3.05 13a9 9 0 1 0 2.13-6.36L3 9"/><path d="M12 7v5l3 3"/></svg>
+    </button>
+  </div>
+</header>
+
+<!-- ============ MAIN ============ -->
+<main class="app-main">
+
+  <!-- CALCULATOR CARD -->
+  <section class="calc-card glass" aria-label="Calculator">
+
+    <div class="display">
+      <span class="mem-indicator" id="memIndicator">M</span>
+      <span class="angle-indicator" id="angleIndicator">DEG</span>
+      <div class="expr-line" id="exprLine">0</div>
+      <div class="result-line" id="resultLine">0</div>
+      <div class="display-actions">
+        <button type="button" class="copy-btn" id="copyBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copy
+        </button>
+      </div>
+    </div>
+
+    <!-- memory functions -->
+    <div class="mem-row" id="memRow">
+      <button type="button" data-action="memory" data-value="MC">MC</button>
+      <button type="button" data-action="memory" data-value="MR">MR</button>
+      <button type="button" data-action="memory" data-value="M+">M+</button>
+      <button type="button" data-action="memory" data-value="M-">M-</button>
+      <button type="button" data-action="memory" data-value="MS">MS</button>
+    </div>
+
+    <!-- scientific extra row (hidden in standard mode) -->
+    <div class="sci-grid" id="sciGrid">
+      <button type="button" class="btn fn" data-action="unary" data-fn="square">x²</button>
+      <button type="button" class="btn fn" data-action="unary" data-fn="cube">x³</button>
+      <button type="button" class="btn fn" data-action="unary" data-fn="sqrt">√x</button>
+      <button type="button" class="btn fn" data-action="unary" data-fn="cbrt">∛x</button>
+      <button type="button" class="btn fn" data-action="unary" data-fn="reciprocal">1/x</button>
+
+      <button type="button" class="btn op" data-action="operator" data-value="^">x^y</button>
+      <button type="button" class="btn op" data-action="operator" data-value="mod">mod</button>
+      <button type="button" class="btn fn" data-action="unary" data-fn="sin">sin</button>
+      <button type="button" class="btn fn" data-action="unary" data-fn="cos">cos</button>
+      <button type="button" class="btn fn" data-action="unary" data-fn="tan">tan</button>
+
+      <button type="button" class="btn fn" data-action="constant" data-value="pi">π</button>
+      <button type="button" class="btn fn" data-action="constant" data-value="e">e</button>
+      <button type="button" class="btn fn" id="angleToggle">DEG</button>
+    </div>
+
+    <!-- main button grid -->
+    <div class="btn-grid" id="btnGrid">
+      <button type="button" class="btn clear" data-action="ac">AC</button>
+      <button type="button" class="btn clear" data-action="ce">CE</button>
+      <button type="button" class="btn" data-action="paren" data-value="(">(</button>
+      <button type="button" class="btn" data-action="paren" data-value=")">)</button>
+
+      <button type="button" class="btn" data-action="backspace" aria-label="Backspace">⌫</button>
+      <button type="button" class="btn" data-action="unary" data-fn="percent">%</button>
+      <button type="button" class="btn op" data-action="operator" data-value="/">÷</button>
+      <button type="button" class="btn op" data-action="operator" data-value="*">×</button>
+
+      <button type="button" class="btn" data-action="digit" data-value="7">7</button>
+      <button type="button" class="btn" data-action="digit" data-value="8">8</button>
+      <button type="button" class="btn" data-action="digit" data-value="9">9</button>
+      <button type="button" class="btn op" data-action="operator" data-value="-">−</button>
+
+      <button type="button" class="btn" data-action="digit" data-value="4">4</button>
+      <button type="button" class="btn" data-action="digit" data-value="5">5</button>
+      <button type="button" class="btn" data-action="digit" data-value="6">6</button>
+      <button type="button" class="btn op" data-action="operator" data-value="+">+</button>
+
+      <button type="button" class="btn" data-action="digit" data-value="1">1</button>
+      <button type="button" class="btn" data-action="digit" data-value="2">2</button>
+      <button type="button" class="btn" data-action="digit" data-value="3">3</button>
+      <button type="button" class="btn equals" data-action="equals" style="grid-row:span 2;">=</button>
+
+      <button type="button" class="btn" data-action="sign">±</button>
+      <button type="button" class="btn span-2" data-action="digit" data-value="0">0</button>
+      <button type="button" class="btn" data-action="decimal">.</button>
+    </div>
+  </section>
+
+  <!-- HISTORY -->
+  <div class="history-overlay" id="historyOverlay"></div>
+  <aside class="history-panel glass" id="historyPanel" aria-label="Calculation history">
+    <div class="history-head">
+      <h2>History</h2>
+      <button type="button" class="clear-history" id="clearHistory">Clear</button>
+    </div>
+    <ul class="history-list" id="historyList">
+      <li class="history-empty" id="historyEmpty">No calculations yet — your results will appear here.</li>
+    </ul>
+  </aside>
+</main>
+
+<footer>
+  Nova Calculator · Vanilla HTML / CSS / JS &nbsp;·&nbsp; Keyboard ready: <kbd>0-9</kbd> <kbd>+ − × ÷</kbd> <kbd>Enter</kbd> <kbd>Esc</kbd>
+</footer>
+
+<div class="toast" id="toast">Copied to clipboard</div>
+
+<script>
+/* =========================================================
+   STATE
+   ========================================================= */
+const state = {
+  expr: '',              // canonical expression string (uses * / ^ and "mod")
+  justEvaluated: false,  // true right after "=" was pressed
+  memory: 0,
+  mode: 'standard',       // 'standard' | 'scientific'
+  angle: 'deg',           // 'deg' | 'rad'
+  theme: 'dark',          // 'dark' | 'light'
+  soundOn: false,
+  history: []             // { expr: string, result: string }
+};
+
+/* =========================================================
+   DOM REFERENCES
+   ========================================================= */
+const exprLine      = document.getElementById('exprLine');
+const resultLine    = document.getElementById('resultLine');
+const memIndicator  = document.getElementById('memIndicator');
+const angleIndicator= document.getElementById('angleIndicator');
+const historyList   = document.getElementById('historyList');
+const historyEmpty  = document.getElementById('historyEmpty');
+const historyPanel  = document.getElementById('historyPanel');
+const historyOverlay= document.getElementById('historyOverlay');
+const toast         = document.getElementById('toast');
+const sciGrid       = document.getElementById('sciGrid');
+const modeSwitch    = document.getElementById('modeSwitch');
+const angleToggleBtn= document.getElementById('angleToggle');
+
+/* =========================================================
+   TOKENIZER + RECURSIVE-DESCENT PARSER
+   Supports: + - * / ^ (power) mod, parentheses, unary minus
+   Written by hand instead of eval() for safety & correctness.
+   ========================================================= */
+function tokenize(str){
+  const tokens = [];
+  let i = 0;
+  while (i < str.length){
+    const ch = str[i];
+    if (ch === ' '){ i++; continue; }
+    if (/[0-9.]/.test(ch)){
+      let j = i;
+      while (j < str.length && /[0-9.]/.test(str[j])) j++;
+      tokens.push({ type:'num', value: str.slice(i,j) });
+      i = j;
+      continue;
+    }
+    if (str.startsWith('mod', i)){
+      tokens.push({ type:'op', value:'mod' });
+      i += 3;
+      continue;
+    }
+    if ('+-*/^'.includes(ch)){
+      tokens.push({ type:'op', value: ch });
+      i++;
+      continue;
+    }
+    if (ch === '('){ tokens.push({ type:'lparen' }); i++; continue; }
+    if (ch === ')'){ tokens.push({ type:'rparen' }); i++; continue; }
+    throw new Error('Unexpected character in expression');
+  }
+  return tokens;
+}
+
+class Parser{
+  constructor(tokens){ this.tokens = tokens; this.pos = 0; }
+  peek(){ return this.tokens[this.pos]; }
+  consume(){ return this.tokens[this.pos++]; }
+
+  parseExpression(){
+    let left = this.parseTerm();
+    while (this.peek() && this.peek().type === 'op' && (this.peek().value === '+' || this.peek().value === '-')){
+      const op = this.consume().value;
+      const right = this.parseTerm();
+      left = op === '+' ? left + right : left - right;
+    }
+    return left;
+  }
+  parseTerm(){
+    let left = this.parsePower();
+    while (this.peek() && this.peek().type === 'op' && ['*','/','mod'].includes(this.peek().value)){
+      const op = this.consume().value;
+      const right = this.parsePower();
+      if (op === '*') left = left * right;
+      else if (op === '/'){
+        if (right === 0) throw new Error('Division by zero');
+        left = left / right;
+      } else { // mod
+        if (right === 0) throw new Error('Division by zero');
+        left = left % right;
+      }
+    }
+    return left;
+  }
+  parsePower(){
+    const base = this.parseUnary();
+    if (this.peek() && this.peek().type === 'op' && this.peek().value === '^'){
+      this.consume();
+      const exp = this.parsePower(); // right-associative
+      return Math.pow(base, exp);
+    }
+    return base;
+  }
+  parseUnary(){
+    if (this.peek() && this.peek().type === 'op' && this.peek().value === '-'){
+      this.consume();
+      return -this.parseUnary();
+    }
+    if (this.peek() && this.peek().type === 'op' && this.peek().value === '+'){
+      this.consume();
+      return this.parseUnary();
+    }
+    return this.parsePrimary();
+  }
+  parsePrimary(){
+    const tok = this.peek();
+    if (!tok) throw new Error('Unexpected end of expression');
+    if (tok.type === 'num'){
+      this.consume();
+      return parseFloat(tok.value);
+    }
+    if (tok.type === 'lparen'){
+      this.consume();
+      const val = this.parseExpression();
+      if (!this.peek() || this.peek().type !== 'rparen') throw new Error('Missing closing bracket');
+      this.consume();
+      return val;
+    }
+    throw new Error('Unexpected token in expression');
+  }
+}
+
+/** Auto-closes any unmatched "(" then evaluates the string. */
+function evaluateExpression(str){
+  if (str.trim() === '') return 0;
+  const openCount  = (str.match(/\(/g) || []).length;
+  const closeCount = (str.match(/\)/g) || []).length;
+  const fixed = str + ')'.repeat(Math.max(0, openCount - closeCount));
+  const tokens = tokenize(fixed);
+  if (tokens.length === 0) return 0;
+  const parser = new Parser(tokens);
+  const result = parser.parseExpression();
+  if (parser.pos !== tokens.length) throw new Error('Invalid expression');
+  if (!isFinite(result)) throw new Error('Math error');
+  return result;
+}
+
+/* =========================================================
+   DISPLAY FORMATTING
+   ========================================================= */
+function prettyExpr(str){
+  // Adds spacing and swaps symbols purely for display purposes.
+  return str
+    .replace(/\*/g,' × ')
+    .replace(/\//g,' ÷ ')
+    .replace(/\^/g,' ^ ')
+    .replace(/mod/g,' mod ')
+    .replace(/\+/g,' + ')
+    .replace(/-/g,' − ')
+    .replace(/\s+/g,' ')
+    .trim();
+}
+
+function formatNumber(num){
+  if (!isFinite(num)) return 'Error';
+  // kill floating point noise
+  let n = Math.round((num + Number.EPSILON) * 1e10) / 1e10;
+  if (Math.abs(n) >= 1e15 || (Math.abs(n) < 1e-9 && n !== 0)){
+    return n.toExponential(6).replace('e+','e').toUpperCase();
+  }
+  let [intPart, decPart] = n.toString().split('.');
+  intPart = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return decPart ? `${intPart}.${decPart}` : intPart;
+}
+
+/* =========================================================
+   CORE RENDER
+   ========================================================= */
+function render(){
+  exprLine.textContent = state.expr === '' ? '0' : prettyExpr(state.expr);
+
+  try{
+    if (state.expr.trim() === ''){
+      resultLine.textContent = '0';
+      resultLine.classList.remove('error');
+    } else {
+      const val = evaluateExpression(state.expr);
+      resultLine.textContent = formatNumber(val);
+      resultLine.classList.remove('error');
+    }
+  } catch(e){
+    // incomplete expressions (e.g. "12+") are normal mid-typing states — stay quiet
+    // only surface an error once the user commits with "="
+  }
+
+  memIndicator.classList.toggle('show', state.memory !== 0);
+  angleIndicator.textContent = state.angle.toUpperCase();
+  angleIndicator.style.display = state.mode === 'scientific' ? 'block' : 'none';
+}
+
+/* =========================================================
+   INPUT HELPERS
+   ========================================================= */
+function lastNumberMatch(){
+  // matches a trailing number (optionally preceded by a lone leading '-')
+  return state.expr.match(/(-?\d+\.?\d*)$/);
+}
+
+function inputDigit(d){
+  if (state.justEvaluated){ state.expr = ''; state.justEvaluated = false; }
+  state.expr += d;
+  render();
+}
+
+function inputDecimal(){
+  if (state.justEvaluated){ state.expr = '0'; state.justEvaluated = false; }
+  const m = state.expr.match(/(\d*\.?\d*)$/);
+  if (m && m[0].includes('.')) return; // already has a decimal point in this segment
+  if (state.expr === '' || /[+\-*/^(]$/.test(state.expr) || state.expr.endsWith('mod')){
+    state.expr += '0.';
+  } else {
+    state.expr += '.';
+  }
+  render();
+}
+
+function inputOperator(op){
+  if (state.expr === '' && op !== '-') return; // nothing to operate on yet (allow leading minus)
+  if (state.justEvaluated){ state.justEvaluated = false; }
+
+  const opToken = op === 'mod' ? 'mod' : op;
+  const trailingOpRegex = /(\*|\/|\+|-|\^|mod)\s*$/;
+
+  if (trailingOpRegex.test(state.expr)){
+    // replace the trailing operator instead of stacking two in a row
+    state.expr = state.expr.replace(trailingOpRegex, opToken);
+  } else {
+    state.expr += opToken;
+  }
+  render();
+}
+
+function inputParen(p){
+  if (state.justEvaluated){ state.expr = ''; state.justEvaluated = false; }
+  if (p === '('){
+    // implicit multiplication: "5(" -> "5*("
+    if (/[\d)]$/.test(state.expr)) state.expr += '*';
+    state.expr += '(';
+  } else {
+    const open = (state.expr.match(/\(/g) || []).length;
+    const close = (state.expr.match(/\)/g) || []).length;
+    if (open > close && /[\d)]$/.test(state.expr)) state.expr += ')';
+  }
+  render();
+}
+
+function backspace(){
+  if (state.justEvaluated){ state.expr = ''; state.justEvaluated = false; render(); return; }
+  state.expr = state.expr.slice(0, -1);
+  render();
+}
+
+function allClear(){
+  state.expr = '';
+  state.justEvaluated = false;
+  resultLine.classList.remove('error');
+  render();
+}
+
+function clearEntry(){
+  // clears only the trailing number segment, keeping earlier expression intact
+  const m = lastNumberMatch();
+  if (m){
+    state.expr = state.expr.slice(0, state.expr.length - m[0].length);
+  } else {
+    state.expr = '';
+  }
+  render();
+}
+
+function toggleSign(){
+  const m = lastNumberMatch();
+  if (m){
+    const num = m[0];
+    const start = state.expr.length - num.length;
+    const negated = num.startsWith('-') ? num.slice(1) : '-' + num;
+    state.expr = state.expr.slice(0, start) + negated;
+  } else {
+    try{
+      const val = evaluateExpression(state.expr);
+      state.expr = String(-val);
+    } catch(e){ /* ignore */ }
+  }
+  render();
+}
+
+/* unary scientific functions — operate on the trailing number,
+   or on the last full result if the expression is empty/finished */
+function applyUnary(fn){
+  let target;
+  let replaceTrailing = true;
+  const m = lastNumberMatch();
+
+  if (m){
+    target = parseFloat(m[0]);
+  } else {
+    try{ target = evaluateExpression(state.expr); }
+    catch(e){ target = 0; }
+    replaceTrailing = false;
+  }
+
+  let result;
+  try{
+    switch(fn){
+      case 'square':    result = Math.pow(target, 2); break;
+      case 'cube':      result = Math.pow(target, 3); break;
+      case 'sqrt':
+        if (target < 0) throw new Error('Invalid input');
+        result = Math.sqrt(target); break;
+      case 'cbrt':      result = Math.cbrt(target); break;
+      case 'reciprocal':
+        if (target === 0) throw new Error('Division by zero');
+        result = 1 / target; break;
+      case 'percent':   result = target / 100; break;
+      case 'sin': result = Math.sin(state.angle === 'deg' ? target * Math.PI/180 : target); break;
+      case 'cos': result = Math.cos(state.angle === 'deg' ? target * Math.PI/180 : target); break;
+      case 'tan': result = Math.tan(state.angle === 'deg' ? target * Math.PI/180 : target); break;
+      default: return;
+    }
+  } catch(e){
+    showError(e.message);
+    return;
+  }
+
+  if (!isFinite(result)){ showError('Math error'); return; }
+  result = Math.round((result + Number.EPSILON) * 1e10) / 1e10;
+
+  if (replaceTrailing){
+    const start = state.expr.length - m[0].length;
+    state.expr = state.expr.slice(0, start) + result;
+  } else {
+    state.expr = String(result);
+  }
+  state.justEvaluated = false;
+  render();
+}
+
+function insertConstant(name){
+  if (state.justEvaluated){ state.expr = ''; state.justEvaluated = false; }
+  const val = name === 'pi' ? Math.PI : Math.E;
+  if (/[\d)]$/.test(state.expr)) state.expr += '*';
+  state.expr += val.toFixed(8).replace(/0+$/,'').replace(/\.$/,'');
+  render();
+}
+
+function showError(msg){
+  resultLine.textContent = msg || 'Error';
+  resultLine.classList.add('error');
+}
+
+function equals(){
+  if (state.expr.trim() === '') return;
+  try{
+    const openCount  = (state.expr.match(/\(/g) || []).length;
+    const closeCount = (state.expr.match(/\)/g) || []).length;
+    const fixedExpr = state.expr + ')'.repeat(Math.max(0, openCount - closeCount));
+    const val = evaluateExpression(fixedExpr);
+    const formatted = formatNumber(val);
+
+    addHistoryEntry(prettyExpr(fixedExpr), formatted);
+
+    state.expr = String(val);
+    state.justEvaluated = true;
+    render();
+
+    resultLine.classList.remove('flash');
+    void resultLine.offsetWidth; // restart animation
+    resultLine.classList.add('flash');
+    playSound('equals');
+  } catch(e){
+    showError(e.message === 'Division by zero' ? 'Cannot divide by 0' : 'Error');
+    playSound('error');
+  }
+}
+
+/* =========================================================
+   MEMORY FUNCTIONS
+   ========================================================= */
+function currentDisplayValue(){
+  try{ return evaluateExpression(state.expr || '0'); }
+  catch(e){ return 0; }
+}
+
+function memoryAction(action){
+  switch(action){
+    case 'MC': state.memory = 0; break;
+    case 'MR':
+      if (state.justEvaluated){ state.expr = ''; state.justEvaluated = false; }
+      if (/[\d)]$/.test(state.expr)) state.expr += '*';
+      state.expr += state.memory;
+      break;
+    case 'M+': state.memory += currentDisplayValue(); break;
+    case 'M-': state.memory -= currentDisplayValue(); break;
+    case 'MS': state.memory = currentDisplayValue(); break;
+  }
+  render();
+}
+
+/* =========================================================
+   HISTORY PANEL
+   ========================================================= */
+function addHistoryEntry(exprStr, resultStr){
+  state.history.unshift({ expr: exprStr, result: resultStr });
+  if (state.history.length > 50) state.history.pop();
+  renderHistory();
+}
+
+function renderHistory(){
+  historyList.innerHTML = '';
+  if (state.history.length === 0){
+    historyList.appendChild(historyEmpty);
+    return;
+  }
+  state.history.forEach(item => {
+    const li = document.createElement('li');
+    li.className = 'history-item';
+    li.innerHTML = `<div class="h-expr">${item.expr} =</div><div class="h-result">${item.result}</div>`;
+    li.addEventListener('click', () => {
+      state.expr = item.result.replace(/,/g,'');
+      state.justEvaluated = true;
+      render();
+      closeHistoryOnMobile();
+    });
+    historyList.appendChild(li);
+  });
+}
+
+document.getElementById('clearHistory').addEventListener('click', () => {
+  state.history = [];
+  renderHistory();
+});
+
+function closeHistoryOnMobile(){
+  if (window.innerWidth < 900){
+    historyPanel.classList.remove('open');
+    historyOverlay.classList.remove('open');
+  }
+}
+document.getElementById('historyToggle').addEventListener('click', () => {
+  historyPanel.classList.toggle('open');
+  historyOverlay.classList.toggle('open');
+});
+historyOverlay.addEventListener('click', closeHistoryOnMobile);
+
+/* =========================================================
+   COPY RESULT
+   ========================================================= */
+document.getElementById('copyBtn').addEventListener('click', async (e) => {
+  const text = resultLine.textContent;
+  try{
+    await navigator.clipboard.writeText(text);
+  } catch(e){
+    /* clipboard API unavailable — fail silently, still show feedback */
+  }
+  showToast('Copied ' + text);
+  const btn = e.currentTarget;
+  btn.classList.add('copied');
+  setTimeout(() => btn.classList.remove('copied'), 900);
+});
+
+function showToast(msg){
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => toast.classList.remove('show'), 1600);
+}
+
+/* =========================================================
+   THEME TOGGLE
+   ========================================================= */
+document.getElementById('themeToggle').addEventListener('click', () => {
+  state.theme = state.theme === 'dark' ? 'light' : 'dark';
+  document.body.classList.toggle('light-theme', state.theme === 'light');
+});
+
+/* =========================================================
+   SOUND (Web Audio synthesized click — no external assets)
+   ========================================================= */
+let audioCtx = null;
+function playSound(kind){
+  if (!state.soundOn) return;
+  try{
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = kind === 'error' ? 160 : kind === 'equals' ? 880 : 520;
+    gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.12);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.12);
+  } catch(e){ /* audio not available */ }
+}
+const soundToggleBtn = document.getElementById('soundToggle');
+soundToggleBtn.addEventListener('click', () => {
+  state.soundOn = !state.soundOn;
+  soundToggleBtn.classList.toggle('sound-on', state.soundOn);
+  if (state.soundOn) playSound('click');
+});
+
+/* =========================================================
+   MODE SWITCH (Standard / Scientific)
+   ========================================================= */
+modeSwitch.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-mode-btn]');
+  if (!btn) return;
+  state.mode = btn.dataset.modeBtn;
+  modeSwitch.dataset.mode = state.mode;
+  modeSwitch.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
+  sciGrid.classList.toggle('open', state.mode === 'scientific');
+  render();
+});
+
+angleToggleBtn.addEventListener('click', () => {
+  state.angle = state.angle === 'deg' ? 'rad' : 'deg';
+  angleToggleBtn.textContent = state.angle.toUpperCase();
+  render();
+});
+
+/* =========================================================
+   RIPPLE + BUTTON PRESS EFFECT
+   ========================================================= */
+function spawnRipple(btn, x, y){
+  const rect = btn.getBoundingClientRect();
+  const ripple = document.createElement('span');
+  const size = Math.max(rect.width, rect.height);
+  ripple.className = 'ripple';
+  ripple.style.width = ripple.style.height = size + 'px';
+  ripple.style.left = (x - rect.left - size/2) + 'px';
+  ripple.style.top = (y - rect.top - size/2) + 'px';
+  btn.appendChild(ripple);
+  ripple.addEventListener('animationend', () => ripple.remove());
+}
+
+/* =========================================================
+   EVENT DELEGATION — all calculator buttons
+   ========================================================= */
+function handleButtonClick(e){
+  const btn = e.target.closest('button[data-action]');
+  if (!btn) return;
+
+  spawnRipple(btn, e.clientX || (btn.getBoundingClientRect().left + btn.offsetWidth/2), e.clientY || (btn.getBoundingClientRect().top + btn.offsetHeight/2));
+  playSound('click');
+
+  const action = btn.dataset.action;
+  const value  = btn.dataset.value;
+  const fn     = btn.dataset.fn;
+
+  switch(action){
+    case 'digit':     inputDigit(value); break;
+    case 'decimal':   inputDecimal(); break;
+    case 'operator':  inputOperator(value); break;
+    case 'paren':     inputParen(value); break;
+    case 'backspace': backspace(); break;
+    case 'ac':        allClear(); break;
+    case 'ce':        clearEntry(); break;
+    case 'sign':      toggleSign(); break;
+    case 'unary':     applyUnary(fn); break;
+    case 'constant':  insertConstant(value); break;
+    case 'memory':    memoryAction(value); break;
+    case 'equals':    equals(); break;
+  }
+}
+document.getElementById('btnGrid').addEventListener('click', handleButtonClick);
+document.getElementById('sciGrid').addEventListener('click', handleButtonClick);
+document.getElementById('memRow').addEventListener('click', handleButtonClick);
+
+/* =========================================================
+   KEYBOARD SUPPORT
+   ========================================================= */
+window.addEventListener('keydown', (e) => {
+  if (/^[0-9]$/.test(e.key)){ inputDigit(e.key); return; }
+  switch(e.key){
+    case '.': inputDecimal(); break;
+    case '+': inputOperator('+'); break;
+    case '-': inputOperator('-'); break;
+    case '*': inputOperator('*'); break;
+    case '/': e.preventDefault(); inputOperator('/'); break;
+    case '^': inputOperator('^'); break;
+    case '%': applyUnary('percent'); break;
+    case '(': inputParen('('); break;
+    case ')': inputParen(')'); break;
+    case 'Enter': case '=': e.preventDefault(); equals(); break;
+    case 'Backspace': backspace(); break;
+    case 'Escape': allClear(); break;
+    case 'Delete': clearEntry(); break;
+  }
+});
+
+/* =========================================================
+   INIT
+   ========================================================= */
+render();
+renderHistory();
+</script>
+</body>
+</html>
